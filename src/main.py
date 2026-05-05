@@ -22,14 +22,14 @@ class StationEventCenter:
 class AnnouncementSystem:
     def update(self, event_type, data):
         if event_type == "TRAIN_DELAY":
-            print(f"📢 PA SYSTEM: Attention! Train {data['id']} is delayed by {data['minutes']} mins.")
+            print(f"PA SYSTEM: Attention! Train {data['id']} is delayed by {data['minutes']} mins.")
         elif event_type == "EMERGENCY":
-            print(f"🚨 PA SYSTEM: EMERGENCY! Please follow evacuation procedures.")
+            print(f"PA SYSTEM: EMERGENCY! Please follow evacuation procedures.")
 
 class SecurityOffice:
     def update(self, event_type, data):
         if event_type == "EMERGENCY":
-            print(f"👮 SECURITY: Dispatching officers to {data['location']} immediately!")
+            print(f"SECURITY: Dispatching officers to {data['location']} immediately!")
 
 
 class Train(threading.Thread):
@@ -49,27 +49,42 @@ class Train(threading.Thread):
                 travel_time += 10
             time.sleep(travel_time)
 
-            print(f"🚆 Train {self.train_id} requesting platform at {self.station.name}...")
+            print(f"Train {self.train_id} requesting platform at {self.station.name}...")
 
             with self.station.platform_lock:
                 self.event_center.notify("TRAIN_ARRIVAL", {"id": self.train_id, "station": self.station.name})
-
-                # 3. Simulate Boarding time
-                print(f"✅ Train {self.train_id} is boarding at {self.station.name}.")
-                time.sleep(3)  # Time for Passenger threads to interact[cite: 10]
+                print(f"Train {self.train_id} is boarding at {self.station.name}.")
+                time.sleep(3)
 
                 self.event_center.notify("TRAIN_DEPARTURE", {"id": self.train_id})
-
-            # 4. Small chance of a new disruption after departing
-            if random.random() < 0.1:  # 10% chance
+            if random.random() < 0.1:
                 self.trigger_random_delay()
 
     def trigger_random_delay(self):
         self.is_delayed = True
-        # Madrid Line 10 Scenario: Unexpected system failure[cite: 2]
         self.event_center.notify("TRAIN_DELAY", {"id": self.train_id, "minutes": 15})
-        time.sleep(5)  # Simulation time for the 'fix'
+        time.sleep(5)
         self.is_delayed = False
+
+
+if __name__ == "__main__":
+    center = StationEventCenter()
+    pa_system = AnnouncementSystem()
+    security = SecurityOffice()
+    center.subscribe(pa_system)
+    center.subscribe(security)
+    class MetroStation:
+        def __init__(self, name):
+            self.name = name
+            self.platform_lock = threading.Lock()
+
+    sol_station = MetroStation("Sol")
+    train0 = Train("Line-10-A", center, sol_station)
+    train1 = Train("Line-10-B", center, sol_station)
+
+    print("Metro simulation starting")
+    train0.start()
+    train1.start()
 
 
 
